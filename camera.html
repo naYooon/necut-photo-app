@@ -63,7 +63,7 @@
         let photoCount = 0;
         let countdown = 5;  // 타이머 초기값
         let timerInterval;  // 타이머 인터벌
-        let captureInterval;  // 사진 촬영 간격 설정 (3초마다 촬영)
+        let captureInterval;  // 3초마다 사진 촬영 간격 설정
 
         // 카메라 권한 요청 및 스트림 설정
         navigator.mediaDevices.getUserMedia({ video: true })
@@ -75,7 +75,7 @@
                 alert("카메라 권한을 확인해 주세요.");
             });
 
-        // '사진 찍기' 버튼 클릭 시 촬영 시작
+        // '사진 찍기' 버튼 클릭 시 첫 번째 사진 촬영 시작
         document.getElementById('capture-btn').addEventListener('click', function() {
             if (photoCount === 0) {
                 takeFirstPicture();  // 첫 번째 사진 촬영
@@ -94,7 +94,7 @@
             // 3초마다 사진 촬영
             captureInterval = setInterval(function() {
                 if (photoCount < 4) {
-                    takePicture();
+                    takePicture();  // 새로운 사진 촬영
                     photoCount++;
                 } else {
                     clearInterval(captureInterval);  // 4개 촬영 완료 후 인터벌 종료
