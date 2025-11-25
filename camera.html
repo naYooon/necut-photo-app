@@ -61,8 +61,8 @@
     <script>
         let photos = [];
         let photoCount = 0;
-        let timerInterval;
-        let countdown = 5;
+        let countdown = 5;  // 타이머 초기값
+        let timerInterval;  // 타이머 인터벌
 
         // 카메라 권한 요청 및 스트림 설정
         navigator.mediaDevices.getUserMedia({ video: true })
@@ -74,42 +74,43 @@
                 alert("카메라 권한을 확인해 주세요.");
             });
 
-        // 타이머가 5초부터 시작하도록 설정
+        // 타이머 시작 함수
         function startTimer() {
-            countdown = 5;
-            document.getElementById('timer').textContent = countdown;
+            countdown = 5; // 타이머 초 초기화
+            document.getElementById('timer').textContent = countdown; // 타이머 표시 초기화
+
+            // 타이머가 1초마다 감소하도록 설정
             timerInterval = setInterval(function() {
-                countdown--;
-                document.getElementById('timer').textContent = countdown;
+                countdown--;  // 타이머 초 감소
+                document.getElementById('timer').textContent = countdown; // 화면에 표시
+
                 if (countdown <= 0) {
-                    clearInterval(timerInterval);
-                    takePicture();
-                    startTimer();  // 5초마다 반복
+                    clearInterval(timerInterval);  // 타이머 종료
+                    takePicture();  // 사진 촬영
+                    startTimer();   // 다시 타이머 시작
                 }
-            }, 1000);
+            }, 1000); // 1초마다 실행
         }
 
         // 사진 찍기
         document.getElementById('capture-btn').addEventListener('click', function() {
             if (photoCount < 4) {
-                takePicture();
+                takePicture();  // 사진 찍기
                 photoCount++;
             }
         });
 
+        // 사진 촬영 함수
         function takePicture() {
-            if (photoCount < 4) {
-                let video = document.getElementById('camera');
-                let canvas = document.createElement('canvas');
-                let ctx = canvas.getContext('2d');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                let imgUrl = canvas.toDataURL(); // 사진 데이터를 URL로 변환
-                photos.push(imgUrl);
-                displayCapturedPhoto(imgUrl);
-                photoCount++;
-            }
+            let video = document.getElementById('camera');
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let imgUrl = canvas.toDataURL(); // 사진 데이터를 URL로 변환
+            photos.push(imgUrl);
+            displayCapturedPhoto(imgUrl);
         }
 
         // 촬영된 사진 갤러리에 표시
@@ -123,7 +124,7 @@
 
         // 페이지가 로드될 때 타이머 시작
         window.onload = function() {
-            startTimer();
+            startTimer();  // 타이머 시작
         };
     </script>
 </body>
