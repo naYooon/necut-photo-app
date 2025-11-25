@@ -3,17 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사진 찍기</title>
+    <title>네컷 사진 찍기</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            background-color: #f0f0f0;
+        }
+        h1 { margin-bottom: 10px; }
+        
+        /* 카메라 영역 스타일 */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
         }
         #camera {
             width: 100%;
-            max-width: 500px;
-            border: 1px solid black;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-color: #000;
+            /* 좌우 반전 (거울 모드) */
+            transform: scaleX(-1); 
         }
+
+        /* 타이머 오버레이 스타일 */
+        #timer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            display: none; /* 평소에는 숨김 */
+        }
+
         button {
             padding: 15px 30px;
             font-size: 18px;
@@ -24,132 +51,154 @@
             border-radius: 5px;
             margin-top: 20px;
         }
-        button:hover {
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
             background-color: #45a049;
         }
+
         #gallery {
             display: flex;
             justify-content: center;
             margin-top: 20px;
+            gap: 10px;
         }
         .captured-photo {
             width: 100px;
             height: 100px;
-            margin: 0 5px;
             object-fit: cover;
-        }
-        #timer {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            font-size: 40px;
-            color: #ff0000;
-            font-weight: bold;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transform: scaleX(-1); /* 사진도 거울모드 유지 */
         }
     </style>
 </head>
 <body>
-    <h1>사진 찍기</h1>
-    <video id="camera" autoplay></video>
-    <button id="capture-btn">사진 찍기</button>
+
+    <h1>인생네컷 촬영</h1>
+    
+    <div class="camera-container">
+        <video id="camera" autoplay playsinline muted></video>
+        <div id="timer">3</div>
+    </div>
+
+    <button id="capture-btn">촬영 시작</button>
 
     <div id="gallery"></div>
-    <button onclick="location.href='result.html'">결과 보기</button>
-
-    <div id="timer">3</div>
+    
+    <div id="result-area" style="display:none; margin-top:20px;">
+        <button onclick="location.href='result.html'">결과 보기</button>
+    </div>
 
     <script>
+        const video = document.getElementById('camera');
+        const captureBtn = document.getElementById('capture-btn');
+        const gallery = document.getElementById('gallery');
+        const timerElement = document.getElementById('timer');
+        const resultArea = document.getElementById('result-area');
+
         let photos = [];
         let photoCount = 0;
-        let countdown = 3;  // 타이머 초기값을 3초로 설정
-        let timerInterval;  // 타이머 인터벌
-        let captureInterval;  // 3초마다 사진 촬영 간격 설정
+        const totalPhotos = 4;
 
-        // 카메라 권한 요청 및 스트림 설정
-        navigator.mediaDevices.getUserMedia({ video: true })
+        // 1. 카메라 설정
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }) // 전면 카메라 우선
             .then(function(stream) {
-                // 비디오 스트림을 video 요소에 연결
-                document.getElementById('camera').srcObject = stream;
+                video.srcObject = stream;
+                video.play(); // 명시적 재생
             })
             .catch(function(error) {
-                console.log("카메라 연결 실패", error);
-                alert("카메라 권한을 확인해 주세요.");
+                console.error("카메라 에러:", error);
+                alert("카메라 권한을 허용해주세요.");
             });
 
-        // '사진 찍기' 버튼 클릭 시 첫 번째 사진 촬영 시작
-        document.getElementById('capture-btn').addEventListener('click', function() {
-            if (photoCount === 0) {
-                takeFirstPicture();  // 첫 번째 사진 촬영
-            }
+        // 2. 촬영 시작 버튼 클릭
+        captureBtn.addEventListener('click', function() {
+            captureBtn.disabled = true; // 버튼 중복 클릭 방지
+            captureBtn.innerText = "촬영 중...";
+            startPhotoSequence();
         });
 
-        // 첫 번째 사진 촬영 후 3초마다 사진을 찍는 함수
-        function takeFirstPicture() {
-            // 첫 번째 사진 촬영
-            takePicture();
-            photoCount++;
-
-            // 타이머 시작
-            startTimer();
-
-            // 3초마다 사진 촬영
-            captureInterval = setInterval(function() {
-                if (photoCount < 4) {
-                    takePicture();  // 새로운 사진 촬영
-                    photoCount++;
-                } else {
-                    clearInterval(captureInterval);  // 4개 촬영 완료 후 인터벌 종료
-                }
-            }, 3000); // 3초마다 촬영
+        // 3. 사진 촬영 시퀀스 관리 (핵심 로직)
+        function startPhotoSequence() {
+            // 첫 번째 사진은 바로 찍거나, 타이머 후 찍거나 선택 가능.
+            // 여기서는 "버튼 누름 -> 3초 카운트 -> 찰칵" 반복 패턴으로 구현
+            runTimerAndCapture();
         }
 
-        // 사진 찍기 함수
+        function runTimerAndCapture() {
+            if (photoCount >= totalPhotos) {
+                finishCapture();
+                return;
+            }
+
+            let countdown = 3;
+            timerElement.style.display = 'block'; // 타이머 보이기
+            timerElement.innerText = countdown;
+
+            // 1초마다 카운트다운
+            let interval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    timerElement.innerText = countdown;
+                } else {
+                    // 카운트가 0이 되면
+                    clearInterval(interval);
+                    timerElement.style.display = 'none'; // 타이머 숨기기
+                    takePicture(); // 찰칵
+                    
+                    photoCount++;
+                    
+                    // 다음 촬영을 위해 재귀 호출 (약간의 딜레이 후 다시 타이머 시작)
+                    if (photoCount < totalPhotos) {
+                        setTimeout(runTimerAndCapture, 1000); // 1초 대기 후 다음 카운트 시작
+                    } else {
+                        finishCapture();
+                    }
+                }
+            }, 1000);
+        }
+
+        // 4. 사진 찍기 함수
         function takePicture() {
-            // 비디오 스트림에서 현재 프레임을 캔버스에 그려줍니다.
-            let video = document.getElementById('camera');
-            let canvas = document.createElement('canvas');
-            let ctx = canvas.getContext('2d');
+            // 찰칵 효과 (선택 사항: 화면 깜빡임)
+            video.style.opacity = 0.5;
+            setTimeout(() => video.style.opacity = 1, 100);
+
+            const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+
+            // 좌우 반전 처리하여 그리기 (거울 모드)
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
             
-            // 비디오 스트림에서 현재 프레임을 캔버스에 그립니다.
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // 캔버스에서 사진을 URL로 변환하여 저장
-            let imgUrl = canvas.toDataURL(); 
-
-            // 새로운 사진을 배열에 추가하고 갤러리에 표시
+            const imgUrl = canvas.toDataURL('image/png');
             photos.push(imgUrl);
-            displayCapturedPhoto(imgUrl);
-
-            // 캡처 후 상태 초기화: 새로운 사진 촬영 준비
-            canvas.width = 0;
-            canvas.height = 0;
+            
+            // 갤러리에 추가
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.classList.add('captured-photo');
+            gallery.appendChild(img);
         }
 
-        // 촬영된 사진 갤러리에 표시
-        function displayCapturedPhoto(imgUrl) {
-            let gallery = document.getElementById('gallery');
-            let imgElement = document.createElement('img');
-            imgElement.src = imgUrl;
-            imgElement.classList.add('captured-photo');
-            gallery.appendChild(imgElement);
-        }
-
-        // 타이머 시작 함수
-        function startTimer() {
-            countdown = 3;  // 타이머 초 초기화
-            document.getElementById('timer').textContent = countdown;  // 화면에 타이머 표시
-
-            // 타이머가 1초마다 감소하도록 설정
-            timerInterval = setInterval(function() {
-                countdown--;  // 1초씩 감소
-                document.getElementById('timer').textContent = countdown;  // 화면에 카운트 표시
-
-                if (countdown <= 0) {
-                    clearInterval(timerInterval);  // 타이머 종료
-                }
-            }, 1000); // 1초마다 실행
+        // 5. 촬영 종료 처리
+        function finishCapture() {
+            captureBtn.innerText = "촬영 완료";
+            captureBtn.style.display = "none";
+            resultArea.style.display = "block"; // 결과 보기 버튼 표시
+            
+            // 로컬 스토리지에 사진 저장 (result.html로 넘기기 위해)
+            localStorage.setItem('capturedPhotos', JSON.stringify(photos));
+            
+            // 카메라 정지 (선택 사항)
+            // video.srcObject.getTracks().forEach(track => track.stop());
         }
     </script>
 </body>
