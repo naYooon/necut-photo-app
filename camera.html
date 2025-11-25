@@ -98,15 +98,18 @@
         });
 
         function takePicture() {
-            let video = document.getElementById('camera');
-            let canvas = document.createElement('canvas');
-            let ctx = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            let imgUrl = canvas.toDataURL(); // 사진 데이터를 URL로 변환
-            photos.push(imgUrl);
-            displayCapturedPhoto(imgUrl);
+            if (photoCount < 4) {
+                let video = document.getElementById('camera');
+                let canvas = document.createElement('canvas');
+                let ctx = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let imgUrl = canvas.toDataURL(); // 사진 데이터를 URL로 변환
+                photos.push(imgUrl);
+                displayCapturedPhoto(imgUrl);
+                photoCount++;
+            }
         }
 
         // 촬영된 사진 갤러리에 표시
