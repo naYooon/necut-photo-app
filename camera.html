@@ -63,6 +63,7 @@
         let photoCount = 0;
         let countdown = 5;  // 타이머 초기값
         let timerInterval;  // 타이머 인터벌
+        let captureInterval;  // 사진 촬영 간격 설정 (3초마다 촬영)
 
         // 카메라 권한 요청 및 스트림 설정
         navigator.mediaDevices.getUserMedia({ video: true })
@@ -74,33 +75,34 @@
                 alert("카메라 권한을 확인해 주세요.");
             });
 
-        // 타이머 시작 함수
-        function startTimer() {
-            countdown = 5; // 타이머 초 초기화
-            document.getElementById('timer').textContent = countdown; // 타이머 표시 초기화
-
-            // 타이머가 1초마다 감소하도록 설정
-            timerInterval = setInterval(function() {
-                countdown--;  // 타이머 초 감소
-                document.getElementById('timer').textContent = countdown; // 화면에 표시
-
-                if (countdown <= 0) {
-                    clearInterval(timerInterval);  // 타이머 종료
-                    takePicture();  // 사진 촬영
-                    startTimer();   // 다시 타이머 시작
-                }
-            }, 1000); // 1초마다 실행
-        }
-
-        // 사진 찍기
+        // '사진 찍기' 버튼 클릭 시 촬영 시작
         document.getElementById('capture-btn').addEventListener('click', function() {
-            if (photoCount < 4) {
-                takePicture();  // 사진 찍기
-                photoCount++;
+            if (photoCount === 0) {
+                takeFirstPicture();  // 첫 번째 사진 촬영
             }
         });
 
-        // 사진 촬영 함수
+        // 첫 번째 사진 촬영 후 3초마다 사진을 찍는 함수
+        function takeFirstPicture() {
+            // 첫 번째 사진 촬영
+            takePicture();
+            photoCount++;
+
+            // 타이머 시작
+            startTimer();
+
+            // 3초마다 사진 촬영
+            captureInterval = setInterval(function() {
+                if (photoCount < 4) {
+                    takePicture();
+                    photoCount++;
+                } else {
+                    clearInterval(captureInterval);  // 4개 촬영 완료 후 인터벌 종료
+                }
+            }, 3000); // 3초마다 촬영
+        }
+
+        // 사진 찍기 함수
         function takePicture() {
             let video = document.getElementById('camera');
             let canvas = document.createElement('canvas');
@@ -122,10 +124,21 @@
             gallery.appendChild(imgElement);
         }
 
-        // 페이지가 로드될 때 타이머 시작
-        window.onload = function() {
-            startTimer();  // 타이머 시작
-        };
+        // 타이머 시작 함수
+        function startTimer() {
+            countdown = 5;
+            document.getElementById('timer').textContent = countdown;
+
+            // 타이머가 1초마다 감소하도록 설정
+            timerInterval = setInterval(function() {
+                countdown--;
+                document.getElementById('timer').textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(timerInterval);  // 타이머 종료
+                }
+            }, 1000); // 1초마다 실행
+        }
     </script>
 </body>
 </html>
