@@ -173,8 +173,10 @@
             }, 1000);
         }
 
-        // 4. 4:3 비율 촬영
+
+        // 4. [수정됨] 용량을 줄여서 사진 찍기
         function takePicture() {
+            // 찰칵 효과
             video.style.opacity = 0.5;
             setTimeout(() => video.style.opacity = 1, 100);
 
@@ -184,8 +186,9 @@
             const vWidth = video.videoWidth;
             const vHeight = video.videoHeight;
             const targetRatio = 4 / 3;
+            
+            // 1. 크롭(Crop) 좌표 계산
             let sWidth, sHeight, sX, sY;
-
             if (vWidth / vHeight > targetRatio) {
                 sHeight = vHeight;
                 sWidth = vHeight * targetRatio;
@@ -198,31 +201,52 @@
                 sY = (vHeight - sHeight) / 2;
             }
 
-            canvas.width = sWidth;
-            canvas.height = sHeight;
+            // 2. [중요] 저장 용량 관리를 위해 캔버스 크기를 제한함
+            // 원본이 너무 크면 LocalStorage 용량(5MB)을 초과해버림
+            const MAX_WIDTH = 1024; // 가로 최대 1024px로 제한
+            const scale = Math.min(1, MAX_WIDTH / sWidth); // 축소 비율 계산
+            
+            canvas.width = sWidth * scale;
+            canvas.height = sHeight * scale;
 
+            // 3. 그리기 (좌우반전 + 리사이징 + 크롭)
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             
+            // drawImage(소스, 잘라낼X, 잘라낼Y, 잘라낼W, 잘라낼H, 캔버스X, 캔버스Y, 캔버스W, 캔버스H)
             ctx.drawImage(video, sX, sY, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
 
-            const imgUrl = canvas.toDataURL('image/png');
+            // 4. [중요] JPG 형식 + 퀄리티 0.8로 압축하여 용량 최소화
+            const imgUrl = canvas.toDataURL('image/jpeg', 0.8);
+            
             photos.push(imgUrl);
             
+            // 갤러리에 썸네일 표시
             const img = document.createElement('img');
             img.src = imgUrl;
             img.classList.add('captured-photo');
             gallery.appendChild(img);
         }
 
-        // 5. 종료 및 저장
+        // 5. [수정됨] 저장 시 에러 체크 추가
         function finishCapture() {
-            captureBtn.innerText = "촬영 완료";
-            captureBtn.style.display = "none";
-            resultArea.style.display = "block";
+            captureBtn.innerText = "저장 중...";
             
-            // [핵심 수정 2] 촬영된 4장의 사진을 새로 저장 (덮어쓰기)
-            localStorage.setItem('capturedPhotos', JSON.stringify(photos));
+            try {
+                // 로컬 스토리지 저장 시도
+                localStorage.setItem('capturedPhotos', JSON.stringify(photos));
+                
+                // 저장이 성공하면 버튼 표시 변경
+                captureBtn.style.display = "none";
+                resultArea.style.display = "block"; 
+            } catch (e) {
+                // 용량 초과 에러(QuotaExceededError) 등을 잡음
+                console.error("저장 실패:", e);
+                alert("사진 용량이 너무 커서 저장하지 못했습니다. 잠시 후 다시 시도하거나 브라우저를 재시작해주세요.");
+                // 실패했으므로 버튼을 다시 활성화하거나 초기화
+                captureBtn.disabled = false;
+                captureBtn.innerText = "재시도";
+            }
         }
     </script>
 </body>
