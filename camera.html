@@ -103,11 +103,15 @@
         const timerElement = document.getElementById('timer');
         const resultArea = document.getElementById('result-area');
 
+        // [핵심 수정 1] 페이지 접속 시 기존 데이터 무조건 삭제 (초기화)
+        // 이렇게 해야 이전 세션의 사진이 result.html에 뜨지 않습니다.
+        localStorage.removeItem('capturedPhotos'); 
+
         let photos = [];
         let photoCount = 0;
         const totalPhotos = 4;
 
-        // 1. 카메라 설정 (최대한 고해상도 요청)
+        // 1. 카메라 설정
         navigator.mediaDevices.getUserMedia({ 
             video: { 
                 width: { ideal: 1920 }, 
@@ -128,10 +132,13 @@
         captureBtn.addEventListener('click', function() {
             captureBtn.disabled = true;
             captureBtn.innerText = "촬영 중...";
+            photos = []; // [안전 장치] 배열도 명시적으로 비움
+            photoCount = 0;
+            gallery.innerHTML = ''; // 갤러리 화면도 비움
             startPhotoSequence();
         });
 
-        // 3. 촬영 시퀀스 로직
+        // 3. 촬영 시퀀스
         function startPhotoSequence() {
             runTimerAndCapture();
         }
@@ -154,11 +161,11 @@
                     clearInterval(interval);
                     timerElement.style.display = 'none';
                     
-                    takePicture(); // 사진 찍기
+                    takePicture(); 
                     photoCount++;
                     
                     if (photoCount < totalPhotos) {
-                        setTimeout(runTimerAndCapture, 1000); // 1초 대기 후 다음
+                        setTimeout(runTimerAndCapture, 1000); 
                     } else {
                         finishCapture();
                     }
@@ -166,66 +173,55 @@
             }, 1000);
         }
 
-        // 4. [중요] 4:3 비율로 자르며(Crop) 사진 찍기
+        // 4. 4:3 비율 촬영
         function takePicture() {
-            // 찰칵 효과
             video.style.opacity = 0.5;
             setTimeout(() => video.style.opacity = 1, 100);
 
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // A. 현재 비디오의 실제 크기
             const vWidth = video.videoWidth;
             const vHeight = video.videoHeight;
-            
-            // B. 목표 비율 (4:3) 계산
             const targetRatio = 4 / 3;
             let sWidth, sHeight, sX, sY;
 
-            // C. 비디오 비율에 따라 자를 영역 계산 (Center Crop)
-            // 비디오가 더 넓적한 경우 (예: 16:9) -> 양옆을 자름
             if (vWidth / vHeight > targetRatio) {
                 sHeight = vHeight;
                 sWidth = vHeight * targetRatio;
-                sX = (vWidth - sWidth) / 2; // 중앙 정렬
+                sX = (vWidth - sWidth) / 2;
                 sY = 0;
-            } 
-            // 비디오가 더 길쭉한 경우 (예: 모바일 세로) -> 위아래를 자름
-            else {
+            } else {
                 sWidth = vWidth;
                 sHeight = vWidth / targetRatio;
                 sX = 0;
-                sY = (vHeight - sHeight) / 2; // 중앙 정렬
+                sY = (vHeight - sHeight) / 2;
             }
 
-            // D. 캔버스 크기를 자른 크기에 맞춤
             canvas.width = sWidth;
             canvas.height = sHeight;
 
-            // E. 좌우 반전 + 자른 영역 그리기
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             
-            // drawImage(이미지, 소스X, 소스Y, 소스너비, 소스높이, 캔버스X, 캔버스Y, 캔버스너비, 캔버스높이)
             ctx.drawImage(video, sX, sY, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
 
-            // 결과 저장
             const imgUrl = canvas.toDataURL('image/png');
             photos.push(imgUrl);
             
-            // 갤러리에 표시
             const img = document.createElement('img');
             img.src = imgUrl;
             img.classList.add('captured-photo');
             gallery.appendChild(img);
         }
 
-        // 5. 종료 처리
+        // 5. 종료 및 저장
         function finishCapture() {
             captureBtn.innerText = "촬영 완료";
             captureBtn.style.display = "none";
             resultArea.style.display = "block";
+            
+            // [핵심 수정 2] 촬영된 4장의 사진을 새로 저장 (덮어쓰기)
             localStorage.setItem('capturedPhotos', JSON.stringify(photos));
         }
     </script>
