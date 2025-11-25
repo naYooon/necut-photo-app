@@ -51,17 +51,17 @@
 <body>
     <h1>사진 찍기</h1>
     <video id="camera" autoplay></video>
-    <button id="capture-btn">사진 찍기1</button>
+    <button id="capture-btn">사진 찍기</button>
 
     <div id="gallery"></div>
     <button onclick="location.href='result.html'">결과 보기</button>
 
-    <div id="timer">5</div>
+    <div id="timer">3</div>
 
     <script>
         let photos = [];
         let photoCount = 0;
-        let countdown = 3;  // 타이머 초기값
+        let countdown = 3;  // 타이머 초기값을 3초로 설정
         let timerInterval;  // 타이머 인터벌
         let captureInterval;  // 3초마다 사진 촬영 간격 설정
 
@@ -112,7 +112,7 @@
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             let imgUrl = canvas.toDataURL(); // 사진 데이터를 URL로 변환
             photos.push(imgUrl);
-            displayCapturedPhoto(imgUrl);
+            displayCapturedPhoto(imgUrl);  // 즉시 화면에 사진 표시
         }
 
         // 촬영된 사진 갤러리에 표시
@@ -126,13 +126,13 @@
 
         // 타이머 시작 함수
         function startTimer() {
-            countdown = 3;
-            document.getElementById('timer').textContent = countdown;
+            countdown = 3;  // 타이머 초 초기화
+            document.getElementById('timer').textContent = countdown;  // 화면에 타이머 표시
 
             // 타이머가 1초마다 감소하도록 설정
             timerInterval = setInterval(function() {
-                countdown--;
-                document.getElementById('timer').textContent = countdown;
+                countdown--;  // 1초씩 감소
+                document.getElementById('timer').textContent = countdown;  // 화면에 카운트 표시
 
                 if (countdown <= 0) {
                     clearInterval(timerInterval);  // 타이머 종료
