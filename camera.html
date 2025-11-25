@@ -3,230 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네컷 사진</title>
+    <title>네컷 사진 결과</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
+            font-family: 'Arial', sans-serif;
             background-color: #f0f0f0;
-            margin: 0;
+            text-align: center;
             padding: 20px;
+            margin: 0;
         }
+
         h1 { margin-bottom: 20px; }
-        
-        /* --- 카메라 컨테이너 (4:3 비율 고정) --- */
-        .camera-container {
-            position: relative;
-            width: 100%;
-            max-width: 640px; /* 적절한 최대 너비 */
-            aspect-ratio: 4 / 3; /* CSS로 4:3 비율 강제 */
-            margin: 0 auto;
-            background-color: #000;
-            border-radius: 10px;
-            overflow: hidden; /* 비디오가 튀어나가지 않게 자름 */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
 
-        #camera {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* 비율 안 맞는 부분은 잘라내고 꽉 채움 */
-            transform: scaleX(-1); /* 좌우 반전 (거울 모드) */
-        }
-
-        /* 타이머 스타일 */
-        #timer {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 80px;
-            color: white;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 10;
+        /* --- 컨트롤 버튼 영역 --- */
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         button {
-            padding: 15px 30px;
-            font-size: 18px;
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
             border: none;
             border-radius: 5px;
-            margin-top: 20px;
+            background-color: #ddd;
+            transition: 0.3s;
         }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        button:hover:not(:disabled) { background-color: #45a049; }
+        button:hover { background-color: #ccc; }
+        
+        button.active {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
 
-        #gallery {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap; /* 모바일 대응 */
+        #download-btn {
+            background-color: #2196F3;
+            color: white;
             margin-top: 20px;
-            gap: 10px;
+            padding: 15px 40px;
+            font-size: 18px;
         }
-        .captured-photo {
-            /* 썸네일도 4:3 비율로 표시 */
-            width: 160px;  
-            height: 120px; 
+        #download-btn:hover { background-color: #0b7dda; }
+
+        /* --- 폴라로이드 미리보기 영역 (CSS) --- */
+        #photo-strip-container {
+            display: inline-block;
+            background-color: white;
+            padding: 20px 20px 50px 20px; /* 하단 패딩을 넓게 주어 날짜 공간 확보 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            /* 모바일 화면 대응 */
+            max-width: 90%; 
+        }
+
+        /* 사진들이 수직으로 쌓이는 영역 */
+        #photo-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* 사진 사이 간격 */
+        }
+
+        .photo-item {
+            width: 300px;  /* 미리보기 가로 크기 */
+            height: 225px; /* 4:3 비율 (300 * 0.75) */
             object-fit: cover;
-            border: 4px solid #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background-color: #eee;
+        }
+
+        /* 날짜 텍스트 */
+        #date-stamp {
+            margin-top: 30px;
+            font-family: 'Courier New', monospace; /* 타자기 느낌 폰트 */
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 2px;
+        }
+
+        /* --- CSS 필터 클래스 --- */
+        /* 흑백 */
+        .filter-bw .photo-item {
+            filter: grayscale(100%) contrast(1.1);
+        }
+        /* 뽀얗게 (밝기 증가, 대비 감소 살짝, 블러 아주 살짝) */
+        .filter-soft .photo-item {
+            filter: brightness(110%) contrast(90%) saturate(110%);
+        }
+        /* 기본 */
+        .filter-original .photo-item {
+            filter: none;
+        }
+
+        .home-link {
             display: block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #666;
         }
     </style>
 </head>
 <body>
 
-    <h1>지금 이 순간이 인생샷!</h1>
-    
-    <div class="camera-container">
-        <video id="camera" autoplay playsinline muted></video>
-        <div id="timer">3</div>
+    <h1>나만의 네컷 사진</h1>
+
+    <div class="controls">
+        <button onclick="setFilter('original')" id="btn-original" class="active">원본</button>
+        <button onclick="setFilter('soft')" id="btn-soft">뽀얗게</button>
+        <button onclick="setFilter('bw')" id="btn-bw">흑백</button>
     </div>
 
-    <button id="capture-btn">촬영 시작</button>
-
-    <div id="gallery"></div>
-    
-    <div id="result-area" style="display:none; margin-top:20px;">
-        <button onclick="location.href='result.html'">결과 보기</button>
+    <div id="photo-strip-container" class="filter-original">
+        <div id="photo-grid">
+            </div>
+        <div id="date-stamp"></div>
     </div>
+
+    <br>
+    <button id="download-btn" onclick="downloadImage()">이미지 저장 (JPG)</button>
+    
+    <a href="camera.html" class="home-link">다시 찍기</a>
 
     <script>
-        const video = document.getElementById('camera');
-        const captureBtn = document.getElementById('capture-btn');
-        const gallery = document.getElementById('gallery');
-        const timerElement = document.getElementById('timer');
-        const resultArea = document.getElementById('result-area');
+        // 1. 데이터 불러오기
+        const photos = JSON.parse(localStorage.getItem('capturedPhotos'));
+        const photoGrid = document.getElementById('photo-grid');
+        const container = document.getElementById('photo-strip-container');
+        const dateStamp = document.getElementById('date-stamp');
 
-        let photos = [];
-        let photoCount = 0;
-        const totalPhotos = 4;
+        let currentFilter = 'original'; // 현재 선택된 필터 상태
 
-        // 1. 카메라 설정 (최대한 고해상도 요청)
-        navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: { ideal: 1920 }, 
-                height: { ideal: 1080 },
-                facingMode: "user" 
-            } 
-        })
-        .then(function(stream) {
-            video.srcObject = stream;
-            video.play();
-        })
-        .catch(function(error) {
-            console.error("카메라 에러:", error);
-            alert("카메라 권한을 확인해주세요.");
-        });
-
-        // 2. 촬영 버튼
-        captureBtn.addEventListener('click', function() {
-            captureBtn.disabled = true;
-            captureBtn.innerText = "촬영 중...";
-            startPhotoSequence();
-        });
-
-        // 3. 촬영 시퀀스 로직
-        function startPhotoSequence() {
-            runTimerAndCapture();
+        // 데이터가 없으면 첫 페이지로 이동
+        if (!photos || photos.length === 0) {
+            alert("촬영된 사진이 없습니다.");
+            location.href = 'camera.html';
         }
 
-        function runTimerAndCapture() {
-            if (photoCount >= totalPhotos) {
-                finishCapture();
-                return;
-            }
+        // 2. 화면에 사진 배치 (Rendering)
+        photos.forEach((url) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.classList.add('photo-item');
+            photoGrid.appendChild(img);
+        });
 
-            let countdown = 3;
-            timerElement.style.display = 'block';
-            timerElement.innerText = countdown;
+        // 3. 오늘 날짜 표시
+        const now = new Date();
+        const dateString = now.getFullYear() + '.' + 
+                           (now.getMonth() + 1).toString().padStart(2, '0') + '.' + 
+                           now.getDate().toString().padStart(2, '0');
+        dateStamp.innerText = dateString;
 
-            let interval = setInterval(() => {
-                countdown--;
-                if (countdown > 0) {
-                    timerElement.innerText = countdown;
-                } else {
-                    clearInterval(interval);
-                    timerElement.style.display = 'none';
-                    
-                    takePicture(); // 사진 찍기
-                    photoCount++;
-                    
-                    if (photoCount < totalPhotos) {
-                        setTimeout(runTimerAndCapture, 1000); // 1초 대기 후 다음
-                    } else {
-                        finishCapture();
-                    }
-                }
-            }, 1000);
+
+        // 4. 필터 변경 함수
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            
+            // CSS 클래스 변경 (화면 미리보기용)
+            container.className = ''; // 기존 클래스 초기화
+            container.classList.add('filter-' + filterType);
+
+            // 버튼 스타일 업데이트
+            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + filterType).classList.add('active');
         }
 
-        // 4. [중요] 4:3 비율로 자르며(Crop) 사진 찍기
-        function takePicture() {
-            // 찰칵 효과
-            video.style.opacity = 0.5;
-            setTimeout(() => video.style.opacity = 1, 100);
 
+        // 5. [핵심] 캔버스로 이미지를 그려서 다운로드하는 함수
+        function downloadImage() {
+            // 다운로드 버튼 텍스트 변경 (처리중)
+            const btn = document.getElementById('download-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "이미지 생성 중...";
+            btn.disabled = true;
+
+            // 캔버스 생성 (메모리 상에서만 존재)
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // A. 현재 비디오의 실제 크기
-            const vWidth = video.videoWidth;
-            const vHeight = video.videoHeight;
-            
-            // B. 목표 비율 (4:3) 계산
-            const targetRatio = 4 / 3;
-            let sWidth, sHeight, sX, sY;
+            // --- 캔버스 사이즈 설정 (고해상도) ---
+            // 가로 600px 기준, 여백 포함 계산
+            const photoWidth = 600;
+            const photoHeight = 450; // 4:3 비율
+            const paddingX = 40;     // 좌우 여백
+            const paddingY = 40;     // 상단 여백
+            const gap = 20;          // 사진 사이 간격
+            const bottomSpace = 100; // 날짜 적을 하단 공간
 
-            // C. 비디오 비율에 따라 자를 영역 계산 (Center Crop)
-            // 비디오가 더 넓적한 경우 (예: 16:9) -> 양옆을 자름
-            if (vWidth / vHeight > targetRatio) {
-                sHeight = vHeight;
-                sWidth = vHeight * targetRatio;
-                sX = (vWidth - sWidth) / 2; // 중앙 정렬
-                sY = 0;
-            } 
-            // 비디오가 더 길쭉한 경우 (예: 모바일 세로) -> 위아래를 자름
-            else {
-                sWidth = vWidth;
-                sHeight = vWidth / targetRatio;
-                sX = 0;
-                sY = (vHeight - sHeight) / 2; // 중앙 정렬
+            const canvasWidth = photoWidth + (paddingX * 2);
+            const canvasHeight = paddingY + (photoHeight * 4) + (gap * 3) + bottomSpace;
+
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // 1) 배경 그리기 (흰색 폴라로이드 틀)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // 2) 필터 설정 적용 (Canvas Context Filter)
+            if (currentFilter === 'bw') {
+                ctx.filter = 'grayscale(100%) contrast(110%)';
+            } else if (currentFilter === 'soft') {
+                ctx.filter = 'brightness(110%) contrast(90%) saturate(110%)';
+            } else {
+                ctx.filter = 'none';
             }
 
-            // D. 캔버스 크기를 자른 크기에 맞춤
-            canvas.width = sWidth;
-            canvas.height = sHeight;
+            // 3) 이미지 순차적으로 그리기
+            // 이미지를 로드하는 과정이 비동기이므로 Promise 사용
+            const imagePromises = photos.map((src) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.src = src;
+                });
+            });
 
-            // E. 좌우 반전 + 자른 영역 그리기
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            
-            // drawImage(이미지, 소스X, 소스Y, 소스너비, 소스높이, 캔버스X, 캔버스Y, 캔버스너비, 캔버스높이)
-            ctx.drawImage(video, sX, sY, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+            Promise.all(imagePromises).then(loadedImages => {
+                loadedImages.forEach((img, index) => {
+                    const x = paddingX;
+                    const y = paddingY + (index * (photoHeight + gap));
+                    
+                    // 이미지 그리기
+                    ctx.drawImage(img, x, y, photoWidth, photoHeight);
+                });
 
-            // 결과 저장
-            const imgUrl = canvas.toDataURL('image/png');
-            photos.push(imgUrl);
-            
-            // 갤러리에 표시
-            const img = document.createElement('img');
-            img.src = imgUrl;
-            img.classList.add('captured-photo');
-            gallery.appendChild(img);
-        }
+                // 필터 해제 (텍스트에는 필터 안 먹히게)
+                ctx.filter = 'none';
 
-        // 5. 종료 처리
-        function finishCapture() {
-            captureBtn.innerText = "촬영 완료";
-            captureBtn.style.display = "none";
-            resultArea.style.display = "block";
-            localStorage.setItem('capturedPhotos', JSON.stringify(photos));
+                // 4) 날짜 텍스트 그리기
+                ctx.fillStyle = '#333333';
+                ctx.font = 'bold 40px "Courier New", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(dateString, canvasWidth / 2, canvasHeight - 40);
+
+                // 5) JPG 다운로드 링크 생성 및 클릭
+                const link = document.createElement('a');
+                link.download = 'my_life4cut_' + dateString + '.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9); // 퀄리티 0.9
+                link.click();
+
+                // 버튼 복구
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
         }
     </script>
 </body>
