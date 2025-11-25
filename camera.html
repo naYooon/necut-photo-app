@@ -110,12 +110,12 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // 비디오 스트림에서 현재 프레임을 캔버스에 그립니다.
+            // 비디오 스트림에서 현재 프레임을 캔버스에 그려줍니다.
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             // 캔버스에서 사진을 URL로 변환하여 저장
             let imgUrl = canvas.toDataURL(); 
-            
+
             // 새로운 사진을 배열에 추가하고 갤러리에 표시
             photos.push(imgUrl);
             displayCapturedPhoto(imgUrl);
