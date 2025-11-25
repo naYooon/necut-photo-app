@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사진 결과</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .photo-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .captured-photo {
+            width: 100px;
+            height: 100px;
+            margin: 0 5px;
+            object-fit: cover;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>결과 보기</h1>
+    <div class="photo-container" id="photo-gallery"></div>
+    
+    <button onclick="applyFilter('original')">원본</button>
+    <button onclick="applyFilter('soft-focus')">뽀얗게</button>
+    <button onclick="applyFilter('sepia')">세피아</button>
+    <button onclick="saveImage()">저장</button>
+
+    <script>
+        let photos = JSON.parse(localStorage.getItem('photos'));
+
+        // 사진 표시
+        const photoGallery = document.getElementById('photo-gallery');
+        photos.forEach(photo => {
+            let img = document.createElement('img');
+            img.src = photo;
+            img.classList.add('captured-photo');
+            photoGallery.appendChild(img);
+        });
+
+        // 필터 적용
+        function applyFilter(filterType) {
+            const photoElements = document.querySelectorAll('.captured-photo');
+            photoElements.forEach(photo => {
+                photo.style.filter = ''; // 초기화
+                if (filterType === 'soft-focus') {
+                    photo.style.filter = 'blur(5px)';
+                } else if (filterType === 'sepia') {
+                    photo.style.filter = 'sepia(1)';
+                }
+            });
+        }
+
+        // 이미지 저장
+        function saveImage() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 4 * 100; // 네 컷 사진을 가로로 배치
+            canvas.height = 100;
+
+            let x = 0;
+            photos.forEach((photo, index) => {
+                let img = new Image();
+                img.src = photo;
+                img.onload = () => {
+                    ctx.drawImage(img, x, 0, 100, 100);
+                    x += 100;
+                    if (index === 3) {
+                        let imgUrl = canvas.toDataURL('image/png');
+                        let link = document.createElement('a');
+                        link.href = imgUrl;
+                        link.download = 'necut-photos.png';
+                        link.click();
+                    }
+                }
+            });
+        }
+
+        // 사진을 로컬에 저장
+        localStorage.setItem('photos', JSON.stringify(photos));
+    </script>
+</body>
+</html>
