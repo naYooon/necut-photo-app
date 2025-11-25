@@ -49,7 +49,7 @@
     </style>
 </head>
 <body>
-    <h1>사진 찍기2</h1>
+    <h1>사진 찍기</h1>
     <video id="camera" autoplay></video>
     <button id="capture-btn">사진 찍기</button>
 
@@ -105,13 +105,14 @@
 
         // 사진 찍기 함수
         function takePicture() {
+            // 비디오 스트림에서 현재 프레임을 캔버스에 그려줍니다.
             let video = document.getElementById('camera');
             let canvas = document.createElement('canvas');
             let ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // 비디오 스트림에서 현재 프레임을 캔버스에 그려줍니다.
+            // 비디오 스트림에서 현재 프레임을 캔버스에 그립니다.
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             // 캔버스에서 사진을 URL로 변환하여 저장
@@ -120,6 +121,10 @@
             // 새로운 사진을 배열에 추가하고 갤러리에 표시
             photos.push(imgUrl);
             displayCapturedPhoto(imgUrl);
+
+            // 캡처 후 상태 초기화: 새로운 사진 촬영 준비
+            canvas.width = 0;
+            canvas.height = 0;
         }
 
         // 촬영된 사진 갤러리에 표시
