@@ -3,99 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사진 결과</title>
+    <title>네컷 사진 결과</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
             text-align: center;
+            padding: 20px;
+            margin: 0;
         }
-        .photo-container {
+
+        h1 { margin-bottom: 20px; }
+
+        /* --- 컨트롤 버튼 영역 --- */
+        .controls {
+            margin-bottom: 20px;
             display: flex;
             justify-content: center;
-            margin-top: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        .captured-photo {
-            width: 100px;
-            height: 100px;
-            margin: 0 5px;
-            object-fit: cover;
-        }
+
         button {
-            padding: 15px 30px;
-            font-size: 18px;
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
             border: none;
             border-radius: 5px;
-            margin-top: 20px;
+            background-color: #ddd;
+            transition: 0.3s;
         }
-        button:hover {
-            background-color: #45a049;
+        button:hover { background-color: #ccc; }
+        
+        button.active {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+
+        #download-btn {
+            background-color: #2196F3;
+            color: white;
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 18px;
+        }
+        #download-btn:hover { background-color: #0b7dda; }
+
+        /* --- 폴라로이드 미리보기 영역 (CSS) --- */
+        #photo-strip-container {
+            display: inline-block;
+            background-color: white;
+            padding: 20px 20px 50px 20px; /* 하단 패딩을 넓게 주어 날짜 공간 확보 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            /* 모바일 화면 대응 */
+            max-width: 90%; 
+        }
+
+        /* 사진들이 수직으로 쌓이는 영역 */
+        #photo-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* 사진 사이 간격 */
+        }
+
+        .photo-item {
+            width: 300px;  /* 미리보기 가로 크기 */
+            height: 225px; /* 4:3 비율 (300 * 0.75) */
+            object-fit: cover;
+            background-color: #eee;
+        }
+
+        /* 날짜 텍스트 */
+        #date-stamp {
+            margin-top: 30px;
+            font-family: 'Courier New', monospace; /* 타자기 느낌 폰트 */
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 2px;
+        }
+
+        /* --- CSS 필터 클래스 --- */
+        /* 흑백 */
+        .filter-bw .photo-item {
+            filter: grayscale(100%) contrast(1.1);
+        }
+        /* 뽀얗게 (밝기 증가, 대비 감소 살짝, 블러 아주 살짝) */
+        .filter-soft .photo-item {
+            filter: brightness(110%) contrast(90%) saturate(110%);
+        }
+        /* 기본 */
+        .filter-original .photo-item {
+            filter: none;
+        }
+
+        .home-link {
+            display: block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <h1>결과 보기</h1>
-    <div class="photo-container" id="photo-gallery"></div>
+
+    <h1>나만의 네컷 사진</h1>
+
+    <div class="controls">
+        <button onclick="setFilter('original')" id="btn-original" class="active">원본</button>
+        <button onclick="setFilter('soft')" id="btn-soft">뽀얗게</button>
+        <button onclick="setFilter('bw')" id="btn-bw">흑백</button>
+    </div>
+
+    <div id="photo-strip-container" class="filter-original">
+        <div id="photo-grid">
+            </div>
+        <div id="date-stamp"></div>
+    </div>
+
+    <br>
+    <button id="download-btn" onclick="downloadImage()">이미지 저장 (JPG)</button>
     
-    <button onclick="applyFilter('original')">원본</button>
-    <button onclick="applyFilter('soft-focus')">뽀얗게</button>
-    <button onclick="applyFilter('sepia')">세피아</button>
-    <button onclick="saveImage()">저장</button>
+    <a href="camera.html" class="home-link">다시 찍기</a>
 
     <script>
-        let photos = JSON.parse(localStorage.getItem('photos'));
+        // 1. 데이터 불러오기
+        const photos = JSON.parse(localStorage.getItem('capturedPhotos'));
+        const photoGrid = document.getElementById('photo-grid');
+        const container = document.getElementById('photo-strip-container');
+        const dateStamp = document.getElementById('date-stamp');
 
-        // 사진 표시
-        const photoGallery = document.getElementById('photo-gallery');
-        photos.forEach(photo => {
-            let img = document.createElement('img');
-            img.src = photo;
-            img.classList.add('captured-photo');
-            photoGallery.appendChild(img);
+        let currentFilter = 'original'; // 현재 선택된 필터 상태
+
+        // 데이터가 없으면 첫 페이지로 이동
+        if (!photos || photos.length === 0) {
+            alert("촬영된 사진이 없습니다.");
+            location.href = 'camera.html';
+        }
+
+        // 2. 화면에 사진 배치 (Rendering)
+        photos.forEach((url) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.classList.add('photo-item');
+            photoGrid.appendChild(img);
         });
 
-        // 필터 적용
-        function applyFilter(filterType) {
-            const photoElements = document.querySelectorAll('.captured-photo');
-            photoElements.forEach(photo => {
-                photo.style.filter = ''; // 초기화
-                if (filterType === 'soft-focus') {
-                    photo.style.filter = 'blur(5px)';
-                } else if (filterType === 'sepia') {
-                    photo.style.filter = 'sepia(1)';
-                }
-            });
+        // 3. 오늘 날짜 표시
+        const now = new Date();
+        const dateString = now.getFullYear() + '.' + 
+                           (now.getMonth() + 1).toString().padStart(2, '0') + '.' + 
+                           now.getDate().toString().padStart(2, '0');
+        dateStamp.innerText = dateString;
+
+
+        // 4. 필터 변경 함수
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            
+            // CSS 클래스 변경 (화면 미리보기용)
+            container.className = ''; // 기존 클래스 초기화
+            container.classList.add('filter-' + filterType);
+
+            // 버튼 스타일 업데이트
+            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + filterType).classList.add('active');
         }
 
-        // 이미지 저장
-        function saveImage() {
+
+        // 5. [핵심] 캔버스로 이미지를 그려서 다운로드하는 함수
+        function downloadImage() {
+            // 다운로드 버튼 텍스트 변경 (처리중)
+            const btn = document.getElementById('download-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "이미지 생성 중...";
+            btn.disabled = true;
+
+            // 캔버스 생성 (메모리 상에서만 존재)
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 4 * 100; // 네 컷 사진을 가로로 배치
-            canvas.height = 100;
 
-            let x = 0;
-            photos.forEach((photo, index) => {
-                let img = new Image();
-                img.src = photo;
-                img.onload = () => {
-                    ctx.drawImage(img, x, 0, 100, 100);
-                    x += 100;
-                    if (index === 3) {
-                        let imgUrl = canvas.toDataURL('image/png');
-                        let link = document.createElement('a');
-                        link.href = imgUrl;
-                        link.download = 'necut-photos.png';
-                        link.click();
-                    }
-                }
+            // --- 캔버스 사이즈 설정 (고해상도) ---
+            // 가로 600px 기준, 여백 포함 계산
+            const photoWidth = 600;
+            const photoHeight = 450; // 4:3 비율
+            const paddingX = 40;     // 좌우 여백
+            const paddingY = 40;     // 상단 여백
+            const gap = 20;          // 사진 사이 간격
+            const bottomSpace = 100; // 날짜 적을 하단 공간
+
+            const canvasWidth = photoWidth + (paddingX * 2);
+            const canvasHeight = paddingY + (photoHeight * 4) + (gap * 3) + bottomSpace;
+
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // 1) 배경 그리기 (흰색 폴라로이드 틀)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // 2) 필터 설정 적용 (Canvas Context Filter)
+            if (currentFilter === 'bw') {
+                ctx.filter = 'grayscale(100%) contrast(110%)';
+            } else if (currentFilter === 'soft') {
+                ctx.filter = 'brightness(110%) contrast(90%) saturate(110%)';
+            } else {
+                ctx.filter = 'none';
+            }
+
+            // 3) 이미지 순차적으로 그리기
+            // 이미지를 로드하는 과정이 비동기이므로 Promise 사용
+            const imagePromises = photos.map((src) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.src = src;
+                });
+            });
+
+            Promise.all(imagePromises).then(loadedImages => {
+                loadedImages.forEach((img, index) => {
+                    const x = paddingX;
+                    const y = paddingY + (index * (photoHeight + gap));
+                    
+                    // 이미지 그리기
+                    ctx.drawImage(img, x, y, photoWidth, photoHeight);
+                });
+
+                // 필터 해제 (텍스트에는 필터 안 먹히게)
+                ctx.filter = 'none';
+
+                // 4) 날짜 텍스트 그리기
+                ctx.fillStyle = '#333333';
+                ctx.font = 'bold 40px "Courier New", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(dateString, canvasWidth / 2, canvasHeight - 40);
+
+                // 5) JPG 다운로드 링크 생성 및 클릭
+                const link = document.createElement('a');
+                link.download = 'my_life4cut_' + dateString + '.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9); // 퀄리티 0.9
+                link.click();
+
+                // 버튼 복구
+                btn.innerText = originalText;
+                btn.disabled = false;
             });
         }
-
-        // 사진을 로컬에 저장
-        localStorage.setItem('photos', JSON.stringify(photos));
     </script>
 </body>
 </html>
