@@ -4,7 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>네컷 사진 찍자</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        /* --- 이미지 크기 조정 핵심 CSS --- */
+        .main-container img {
+            /* 1. 비율 유지: object-fit: contain 또는 none이 기본 동작이므로 명시적으로 지정할 필요는 없지만, 
+                  크기를 명확히 지정해 원본 비율을 유지하며 축소/확대됩니다. */
+            
+            /* 2. 크기 조정: 모바일 화면 너비의 약 40% 크기로 설정 (아이폰에서 보기 편함) */
+            width: 40vw; 
+            max-width: 200px; /* 너무 커지는 것을 방지하기 위한 최대 크기 제한 */
+            height: auto; /* 높이를 'auto'로 설정하여 원본 비율(Aspect Ratio) 자동 유지 */
+            
+            /* 3. 모바일 환경 대비: 가로 40%로 설정하면 어떤 기기든 적절한 크기로 보입니다. */
+        }
+        /* --- 이미지 크기 조정 핵심 CSS 끝 --- */
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #e63973;
+        }
+    </style>
 </head>
 <body>
     <h1>지금 이 순간이 인생샷!❤️</h1>
